@@ -17,6 +17,7 @@ babel==2.17.0
 beartype==0.22.9
 beautifulsoup4==4.14.3
 bleach==6.3.0
+cachetools==6.2.4
 certifi==2025.11.12
 cffi==2.0.0
 charset-normalizer==3.4.4
@@ -44,6 +45,8 @@ frozenlist==1.8.0
 fsspec==2025.10.0
 gitdb==4.0.12
 gitpython==3.1.45
+google-auth==2.45.0
+google-genai==1.56.0
 gpytorch==1.14.3
 graphviz==0.21
 greenlet==3.3.0
@@ -146,6 +149,8 @@ psutil==7.2.1
 ptyprocess==0.7.0
 pure-eval==0.2.3
 pyarrow==22.0.0
+pyasn1==0.6.1
+pyasn1-modules==0.4.2
 pycparser==2.23
 pydantic==2.12.5
 pydantic-core==2.41.5
@@ -164,6 +169,7 @@ rfc3986-validator==0.1.1
 rfc3987-syntax==1.1.0
 rich==14.2.0
 rpds-py==0.30.0
+rsa==4.9.1
 ruff==0.14.10
 safetensors==0.7.0
 scikit-learn==1.8.0
@@ -182,6 +188,7 @@ sqlalchemy==2.0.45
 stack-data==0.6.3
 sympy==1.14.0
 tabulate==0.9.0
+tenacity==9.1.2
 tensorstore==0.1.80
 terminado==0.18.1
 threadpoolctl==3.6.0
@@ -207,6 +214,7 @@ wcwidth==0.2.14
 webcolors==25.10.0
 webencodings==0.5.1
 websocket-client==1.9.0
+websockets==15.0.1
 widgetsnbextension==4.0.15
 xarray==2025.12.0
 xarray-einstats==0.9.1

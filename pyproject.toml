@@ -10,6 +10,7 @@ dependencies = [
     "datasets>=4.4.2",
     "evaluate>=0.4.6",
     "flax>=0.12.2",
+    "google-genai>=1.56.0",
     "gpytorch>=1.14.3",
     "graphviz>=0.21",
     "h5py>=3.15.1",
