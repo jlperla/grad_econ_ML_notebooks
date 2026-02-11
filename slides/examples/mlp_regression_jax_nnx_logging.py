@@ -62,7 +62,7 @@ def fit_model(
     )
     print(f"Number of parameters: {n_params}")
 
-    optimizer = nnx.Optimizer(model, optax.sgd(lr))
+    optimizer = nnx.Optimizer(model, optax.sgd(lr), wrt=nnx.Param)
 
     @nnx.jit
     def train_step(model, optimizer, X, Y):
@@ -70,7 +70,7 @@ def fit_model(
             return residuals_loss(model, X, Y)
 
         loss, grads = nnx.value_and_grad(loss_fn)(model)
-        optimizer.update(grads)
+        optimizer.update(model, grads)
         return loss
 
     dataset = jdl.ArrayDataset(X, Y)

@@ -45,14 +45,14 @@ n_params = sum(np.prod(x.shape) for x in jax.tree.leaves(nnx.state(model, nnx.Pa
 print(f"Number of parameters: {n_params}")
 
 lr = 0.001
-optimizer = nnx.Optimizer(model, optax.sgd(lr))
+optimizer = nnx.Optimizer(model, optax.sgd(lr), wrt=nnx.Param)
 
 @nnx.jit
 def train_step(model, optimizer, X, Y):
     def loss_fn(model):
         return residuals_loss(model, X, Y)
     loss, grads = nnx.value_and_grad(loss_fn)(model)
-    optimizer.update(grads)
+    optimizer.update(model, grads)
     return loss
 
 

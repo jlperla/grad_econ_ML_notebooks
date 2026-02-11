@@ -1,4 +1,4 @@
-# Takes the baseline version and uses vmap, adds in a learning rate scheduler
+# Takes the baseline version and uses split/merge for LBFGS support
 import jax
 import jax.numpy as jnp
 from jax import random
@@ -24,40 +24,37 @@ def residuals_loss(model, X, Y):
 
 model = nnx.Linear(M, 1, use_bias=False, rngs=rngs)
 
-# From https://github.com/google/flax/blob/main/flax/nnx/training/optimizer.py
-# HACK! To be replaced when supported by NNX.
-def update(self, grads, value = None, value_fn = None):
-    gdef, state = nnx.split(self.model, self.wrt)
+wrt = nnx.Param
 
-    def value_fn_wrapped(state):
-        model = nnx.merge(gdef, state)
-        return value_fn(model)
-
-    updates, new_opt_state = self.tx.update(grads, self.opt_state, state, grad = grads, value = value, value_fn = value_fn_wrapped)
-
-
-    new_params = optax.apply_updates(state, updates)
-    assert isinstance(new_params, nnx.State)
-
-    self.step.value += 1
-    nnx.update(self.model, new_params)
-    self.opt_state = new_opt_state
-
-# Advantage: a little faster since split, and can use LBFGS due to the hack
+# Advantage: a little faster since split, and can use LBFGS
 lr = 0.001
 optimizer = nnx.Optimizer(model,
                           optax.lbfgs(),
                         #optax.sgd(lr),
-                          )
+                          wrt=wrt)
 
+# Following the split/merge pattern from stochastic_growth_nnx.py
+# This avoids the old hack and works with Flax 0.12+
 @nnx.jit
-def train_step(model, optimizer, X, Y):
+def step(graphdef, state, X, Y):
+    model, optimizer = nnx.merge(graphdef, state)
+    model_graphdef, _ = nnx.split(model)
+
     def loss_fn(model):
         return residuals_loss(model, X, Y)
-    loss, grads =  nnx.value_and_grad(loss_fn)(model)
-    # optimizer.update(grads)
-    update(optimizer, grads, value = loss, value_fn = loss_fn)
-    return loss
+
+    def loss_fn_split(state):
+        model = nnx.merge(model_graphdef, state)
+        return residuals_loss(model, X, Y)
+
+    grad_fn = nnx.value_and_grad(loss_fn, argnums=nnx.DiffState(0, wrt))
+    loss_value, grads = grad_fn(model)
+    optimizer.update(model, grads, value=loss_value, grad=grads, value_fn=loss_fn_split)
+    _, state = nnx.split((model, optimizer))
+    return loss_value, state
+
+# Split into JAX compatible values for compilation/differentiation
+graphdef, state = nnx.split((model, optimizer))
 
 num_epochs = 20
 batch_size = 1024
@@ -65,11 +62,14 @@ dataset = jdl.ArrayDataset(X, Y)
 train_loader = DataLoaderJAX(dataset, batch_size=batch_size, shuffle=True)
 for epoch in range(num_epochs):
     for X_batch, Y_batch in train_loader:
-        loss = train_step(model, optimizer, X_batch, Y_batch)
+        loss, state = step(graphdef, state, X_batch, Y_batch)
 
+    # Merge back to read model parameters
+    model, optimizer = nnx.merge(graphdef, state)
     if epoch % 2 == 0:
         print(
             f"Epoch {epoch},||theta - theta_hat|| = {jnp.linalg.norm(theta - jnp.squeeze(model.kernel.value))}"
         )
 
+model, optimizer = nnx.merge(graphdef, state)
 print(f"||theta - theta_hat|| = {jnp.linalg.norm(theta - jnp.squeeze(model.kernel.value))}")
